@@ -424,6 +424,10 @@ public static class Program
                 CreateNoWindow = false
             }
         };
+        
+        AnsiConsole.MarkupLine($"[bold]Starting {server.Name} on port {server.Port}[/]");
+        
+        Thread.Sleep(500);
 
         process.Start();
     }
