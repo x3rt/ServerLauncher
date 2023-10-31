@@ -12,7 +12,7 @@ public static class Program
 
     private static bool _exit;
 
-    public const string VersionString = "2.0.0";
+    private const string VersionString = "2.0.0";
 
     static Program()
     {
@@ -52,7 +52,7 @@ public static class Program
         {
             { "Start All Servers", StartAllServers },
             { "Start Specific Server", SpecificServerMenu },
-            { "Edit Server", EditServerMenu },
+            { "Edit/Add Servers", EditServerMenu },
             { "Edit Global Settings", EditGlobalSettingsMenu },
             { "Exit", Exit }
         };
@@ -155,7 +155,7 @@ public static class Program
         AnsiConsole.Clear();
         var leave = false;
         // Display the current key and value
-        SharedOptions sharedOptions = server is null ? Config.GlobalOptions : server.Options;
+        var sharedOptions = server is null ? Config.GlobalOptions : server.Options;
         while (!leave)
         {
             AnsiConsole.MarkupLine($"[bold]Current Key:[/] [green]{key}[/]");
@@ -335,8 +335,14 @@ public static class Program
     private static void SpecificServerMenu()
     {
         AnsiConsole.Clear();
-        var choices = new Dictionary<string, Action>();
 
+        if (Config.Servers.Length == 0)
+        {
+            AnsiConsole.WriteLine("There are no servers to start.");
+            return;
+        }
+
+        var choices = new Dictionary<string, Action>();
         foreach (var server in Config.Servers)
         {
             choices.Add($"[bold]{server.Name}[/] - Port: [green]{server.Port}[/]", () => StartServer(server));
@@ -362,7 +368,15 @@ public static class Program
 
     private static void StartAllServers()
     {
-        foreach (var server in Config.Servers)
+        AnsiConsole.Clear();
+        var serverToStart = Config.Servers.Where(x => x.IncludeInLaunchAll).ToArray();
+        if (serverToStart.Length == 0)
+        {
+            AnsiConsole.WriteLine("No servers are set to be included in the launch all command.");
+            return;
+        }
+
+        foreach (var server in serverToStart)
         {
             StartServer(server);
         }
