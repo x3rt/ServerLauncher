@@ -1,16 +1,41 @@
 ﻿using System.Diagnostics;
+using ServerLauncher.IO;
 using Spectre.Console;
 
-namespace ServerLauncher;
+namespace ServerLauncher.Core;
 
 public static class Program
 {
-    public static Config Config { get; set; } = Config.Load();
+    public static Config Config { get; private set; } = Config.Load();
+
+    private static readonly string LocalAdminExecutable;
 
     private static bool _exit;
 
+    public const string VersionString = "2.0.0";
+
+    static Program()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            LocalAdminExecutable = "LocalAdmin.exe";
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            LocalAdminExecutable = "LocalAdmin";
+        }
+        else
+        {
+            AnsiConsole.MarkupLine("[red]Unsupported Operating System![/]");
+            LocalAdminExecutable = string.Empty;
+            Exit();
+        }
+    }
+
     public static void Main(string[] args)
     {
+        Console.Title = $"Server Launcher v{VersionString}";
+
         while (!_exit)
         {
             MainMenu();
@@ -19,16 +44,18 @@ public static class Program
 
     private static void MainMenu()
     {
-        // AnsiConsole.Clear();
+        AnsiConsole.Clear();
         Config = Config.Load();
         Config.Save();
 
-        var choices = new Dictionary<string, Action>();
-        choices.Add("Start All Servers", StartAllServers);
-        choices.Add("Start Specific Server", SpecificServerMenu);
-        choices.Add("Edit Server", EditServerMenu);
-        choices.Add("Edit Global Settings", EditGlobalSettingsMenu);
-        choices.Add("Exit", Exit);
+        var choices = new Dictionary<string, Action>
+        {
+            { "Start All Servers", StartAllServers },
+            { "Start Specific Server", SpecificServerMenu },
+            { "Edit Server", EditServerMenu },
+            { "Edit Global Settings", EditGlobalSettingsMenu },
+            { "Exit", Exit }
+        };
 
         var action = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
@@ -36,7 +63,6 @@ public static class Program
                 .PageSize(10)
                 .AddChoices(choices.Keys.ToArray()));
 
-        // AnsiConsole.Clear();
         choices[action].Invoke();
     }
 
@@ -49,118 +75,130 @@ public static class Program
     private static void EditGlobalSettingsMenu()
     {
         // Display The Current Settings in a prompt and allow the user to select which one to edit
+        AnsiConsole.Clear();
 
         var choices = new Dictionary<string, Action>();
         choices.Add(
-            $"[bold]App Data Path:[/] [green]{(string.IsNullOrWhiteSpace(Config.AppDataPath) ? "Default" : Config.AppDataPath)}[/]",
-            EditGlobalAppDataPath);
-        choices.Add($"[bold]Launch Args:[/] [green]{Config.LaunchArgs.Count}[/]", EditGlobalLaunchArgs);
+            $"[bold]App Data Path:[/] [green]{(string.IsNullOrWhiteSpace(ConfigHelper.GetAppDataPath()) ? "Default" : ConfigHelper.GetAppDataPath())}[/]",
+            () => EditAppDataPath());
+        choices.Add($"[bold]Launch Args:[/] [green]{ConfigHelper.GetLaunchArgs().Count}[/]", () => EditLaunchArgs());
+
+        choices.Add("[bold]Back[/]", () => { });
 
         var action = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Which setting would you like to edit?")
                 .PageSize(10)
                 .AddChoices(choices.Keys.ToArray()));
-        // AnsiConsole.Clear();
         choices[action].Invoke();
     }
 
-    private static void EditGlobalAppDataPath()
+    private static void EditAppDataPath(Config.Server? server = null)
     {
+        AnsiConsole.Clear();
+        var sharedOptions = server is null ? Config.GlobalOptions : server.Options;
         AnsiConsole.MarkupLine(
-            $"[bold]Current App Data Path:[/] [green]{(string.IsNullOrWhiteSpace(Config.AppDataPath) ? "Default" : Config.AppDataPath)}[/]");
-        if (AnsiConsole.Confirm("Would you like to change the app data path?"))
-        {
-            Config.AppDataPath = AnsiConsole.Prompt(
-                new TextPrompt<string?>("What is the new app data path?")
-                    .AllowEmpty());
-            Config.Save();
-        }
+            $"[bold]Current App Data Path:[/] [green]{(string.IsNullOrWhiteSpace(ConfigHelper.GetAppDataPath(server, server is null)) ? "Default" : ConfigHelper.GetAppDataPath(server))}[/]");
+        sharedOptions.AppDataPath = AnsiConsole.Prompt(
+            new TextPrompt<string?>("What is the new app data path?")
+                .AllowEmpty());
+        Config.Save();
     }
 
-    private static void EditGlobalLaunchArgs()
+    private static void EditLaunchArgs(Config.Server? server = null)
     {
+        AnsiConsole.Clear();
         // Display the current launch args in a prompt and allow the user to select which one to edit, or add a new one
 
         var choices = new Dictionary<string, Action>();
-        foreach (var (key, value) in Config.LaunchArgs)
+        foreach (var (key, value) in ConfigHelper.GetLaunchArgs(server, server is null))
         {
-            choices.Add($"[bold]{key}[/] [green]{value}[/]", () => EditGlobalLaunchArg(key));
+            choices.Add($"[bold]{key}[/] [green]{value}[/]", () => EditLaunchArg(key, server));
         }
 
-        choices.Add("[bold]Add New Launch Arg[/]", AddGlobalLaunchArg);
+        choices.Add("[bold]Add New Launch Argument[/]", () => AddLaunchArg(server));
+
+        choices.Add("[bold]Back[/]", () => { });
 
         var action = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title("Which launch arg would you like to edit?")
+                .Title($"Which launch argument would you like to edit? (Server: {server?.Name ?? "Global"})")
                 .PageSize(10)
                 .AddChoices(choices.Keys.ToArray()));
 
         choices[action].Invoke();
-
-        // AnsiConsole.Clear();
     }
 
-    private static void AddGlobalLaunchArg()
+    private static void AddLaunchArg(Config.Server? server = null)
     {
+        AnsiConsole.Clear();
         var key = AnsiConsole.Prompt(
-            new TextPrompt<string>("What is the launch arg key?"));
+            new TextPrompt<string>("What is the launch argument key?"));
 
         var value = AnsiConsole.Prompt(
-            new TextPrompt<string>("What is the launch arg value?"));
+            new TextPrompt<string>("What is the launch argument value?"));
 
-        Config.LaunchArgs.Add(key, value);
+        if (server is null)
+        {
+            Config.GlobalOptions.LaunchArgs.Add(key, value);
+        }
+        else
+        {
+            server.Options.LaunchArgs.Add(key, value);
+        }
+
         Config.Save();
     }
 
-    private static void EditGlobalLaunchArg(string key)
+    private static void EditLaunchArg(string key, Config.Server? server = null)
     {
+        AnsiConsole.Clear();
         var leave = false;
         // Display the current key and value
+        SharedOptions sharedOptions = server is null ? Config.GlobalOptions : server.Options;
         while (!leave)
         {
             AnsiConsole.MarkupLine($"[bold]Current Key:[/] [green]{key}[/]");
-            AnsiConsole.MarkupLine($"[bold]Current Value:[/] [green]{Config.LaunchArgs[key]}[/]");
+            AnsiConsole.MarkupLine($"[bold]Current Value:[/] [green]{sharedOptions.LaunchArgs[key]}[/]");
             AnsiConsole.WriteLine();
 
             // Ask if the user wants to delete the launch arg or edit the value
             var action = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
-                    .Title("What would you like to do?")
+                    .Title($"What would you like to do with this launch argument?")
                     .PageSize(10)
                     .AddChoices(new[] { "Edit Value", "Edit Key", "Delete", "Back" }));
 
             switch (action)
             {
                 case "Edit Value":
-                    Config.LaunchArgs[key] = AnsiConsole.Prompt(
+                    sharedOptions.LaunchArgs[key] = AnsiConsole.Prompt(
                         new TextPrompt<string>("What is the new value?"));
                     Config.Save();
                     break;
                 case "Edit Key":
                     var newKey = AnsiConsole.Prompt(
                         new TextPrompt<string>("What is the new key?"));
-                    Config.LaunchArgs.Add(newKey, Config.LaunchArgs[key]);
-                    Config.LaunchArgs.Remove(key);
+                    sharedOptions.LaunchArgs.Add(newKey, sharedOptions.LaunchArgs[key]);
+                    sharedOptions.LaunchArgs.Remove(key);
                     Config.Save();
                     break;
                 case "Delete":
                     leave = true;
-                    Config.LaunchArgs.Remove(key);
+                    sharedOptions.LaunchArgs.Remove(key);
                     Config.Save();
                     break;
                 default:
                     leave = true;
                     break;
             }
-
-            // AnsiConsole.Clear();
         }
     }
 
     private static void AddServerMenu()
     {
-        var server = new Server
+        AnsiConsole.Clear();
+        var server = new Config.Server
         {
             Name = AnsiConsole.Prompt(
                 new TextPrompt<string>("What is the name of the server?")),
@@ -170,22 +208,22 @@ public static class Program
                 AnsiConsole.Confirm("Would you like to include this server in the launch all command?"),
         };
         var launchArgs = new Dictionary<string, string>();
-        while (AnsiConsole.Confirm("Would you like to add a launch arg?"))
+        while (AnsiConsole.Confirm("Would you like to add a launch argument?"))
         {
             // Get the launch arg key
             var key = AnsiConsole.Prompt(
-                new TextPrompt<string>("What is the launch arg key?"));
+                new TextPrompt<string>("What is the launch argument key?"));
             var value = AnsiConsole.Prompt(
-                new TextPrompt<string>("What is the launch arg value?"));
+                new TextPrompt<string>("What is the launch argument value?"));
 
             launchArgs.Add(key, value);
         }
 
-        server.LaunchArgs = launchArgs;
+        server.Options.LaunchArgs = launchArgs;
 
         if (AnsiConsole.Confirm("Does this server have a custom app data path?"))
         {
-            server.AppDataPath = AnsiConsole.Prompt(
+            server.Options.AppDataPath = AnsiConsole.Prompt(
                 new TextPrompt<string?>("What is the app data path?").AllowEmpty());
         }
 
@@ -204,22 +242,23 @@ public static class Program
         Config.Save();
     }
 
-    private static void DisplayServerInfo(Server server)
+    private static void DisplayServerInfo(Config.Server server)
     {
         AnsiConsole.Write(new Table().AddColumns("[grey]Option[/]", "[grey]Value[/]")
             .AddRow("[bold]Name[/]", server.Name)
             .AddRow("[bold]Port[/]", server.Port.ToString())
             .AddRow("[bold]Include In Launch All[/]", server.IncludeInLaunchAll.ToString())
-            .AddRow("[bold]App Data Path[/]", server.AppDataPath ?? "Default")
+            .AddRow("[bold]App Data Path[/]", server.Options.AppDataPath ?? "Default")
             .AddRow("[bold]Launch Args[/]",
-                server.LaunchArgs.Count > 0
-                    ? string.Join(" ", server.LaunchArgs.Select(x => $"{x.Key} {x.Value}"))
+                server.Options.LaunchArgs.Count > 0
+                    ? string.Join(" ", server.Options.LaunchArgs.Select(x => $"{x.Key} {x.Value}"))
                     : "None"));
     }
 
 
     private static void EditServerMenu()
     {
+        AnsiConsole.Clear();
         var choices = new Dictionary<string, Action>();
 
         foreach (var server in Config.Servers)
@@ -229,6 +268,8 @@ public static class Program
 
         choices.Add("[bold]Add New Server[/]", AddServerMenu);
 
+        choices.Add("[bold]Back[/]", () => { });
+
         var action = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Which server would you like to edit?")
@@ -236,12 +277,11 @@ public static class Program
                 .AddChoices(choices.Keys.ToArray()));
 
         choices[action].Invoke();
-
-        // AnsiConsole.Clear();
     }
 
-    private static void EditServer(Server server)
+    private static void EditServer(Config.Server server)
     {
+        AnsiConsole.Clear();
         var leave = false;
 
         while (!leave)
@@ -275,33 +315,10 @@ public static class Program
                     Config.Save();
                     break;
                 case "Edit App Data Path":
-                    if (AnsiConsole.Confirm("Does this server have a custom app data path?"))
-                    {
-                        server.AppDataPath = AnsiConsole.Prompt(
-                            new TextPrompt<string?>("What is the app data path?").AllowEmpty());
-                    }
-                    else
-                    {
-                        server.AppDataPath = null;
-                    }
-
-                    Config.Save();
+                    EditAppDataPath(server);
                     break;
                 case "Edit Launch Args":
-                    var launchArgs = new Dictionary<string, string>();
-                    while (AnsiConsole.Confirm("Would you like to add a launch arg?"))
-                    {
-                        // Get the launch arg key
-                        var key = AnsiConsole.Prompt(
-                            new TextPrompt<string>("What is the launch arg key?"));
-                        var value = AnsiConsole.Prompt(
-                            new TextPrompt<string>("What is the launch arg value?"));
-
-                        launchArgs.Add(key, value);
-                    }
-
-                    server.LaunchArgs = launchArgs;
-                    Config.Save();
+                    EditLaunchArgs(server);
                     break;
                 case "Delete":
                     leave = true;
@@ -312,26 +329,29 @@ public static class Program
                     leave = true;
                     break;
             }
-
-            // AnsiConsole.Clear();
         }
     }
 
     private static void SpecificServerMenu()
     {
+        AnsiConsole.Clear();
         var choices = new Dictionary<string, Action>();
-        
+
         foreach (var server in Config.Servers)
         {
             choices.Add($"[bold]{server.Name}[/] - Port: [green]{server.Port}[/]", () => StartServer(server));
         }
-        
+
         var action = AnsiConsole.Prompt(
             new MultiSelectionPrompt<string>()
                 .Title("Which server would you like to start?")
                 .PageSize(10)
+                .NotRequired()
                 .AddChoices(choices.Keys.ToArray()));
-        
+
+        if (action.Count == 0)
+            return;
+
         foreach (var act in action)
         {
             choices[act].Invoke();
@@ -348,37 +368,33 @@ public static class Program
         }
     }
 
-    private static void StartServer(Server server)
+    private static void StartServer(Config.Server server)
     {
-        // In a new window, run
-        // LocalAdmin.Exe [Port] [Args]
-        
         var args = new List<string>
         {
             server.Port.ToString(),
-            server.GetLaunchArgsString()
+            ConfigHelper.GetLaunchArgsString(server)
         };
-        
-        
-        var appDataPth = server.GetAppDataPath();
+
+
+        var appDataPth = ConfigHelper.GetAppDataPath(server);
         if (!string.IsNullOrWhiteSpace(appDataPth))
         {
             args.Add($"-appdatapath");
             args.Add(appDataPth);
         }
-        
+
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = "LocalAdmin.exe",
+                FileName = LocalAdminExecutable,
                 Arguments = string.Join(" ", args),
                 UseShellExecute = true,
                 CreateNoWindow = false
             }
         };
-        
+
         process.Start();
-        
     }
 }
