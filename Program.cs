@@ -48,9 +48,6 @@ public static class Program
 
     private static void AddServerMenu()
     {
-        // Name
-        // Port
-        // Launch Args
         var server = new Server();
         server.Name = AnsiConsole.Ask<string>("What is the name of the server?");
         server.Port = AnsiConsole.Ask<ushort>("What is the port of the server?");
@@ -60,6 +57,7 @@ public static class Program
             var arg = AnsiConsole.Ask<string>("What is the launch arg?");
             launchArgs = launchArgs.Append(arg).ToArray();
         }
+
         server.LaunchArgs = launchArgs;
         // Display the server info
         AnsiConsole.MarkupLine($"[bold]Name:[/] {server.Name}");
@@ -67,7 +65,7 @@ public static class Program
         AnsiConsole.MarkupLine($"[bold]Launch Args:[/] {string.Join(" ", server.LaunchArgs)}");
         if (!AnsiConsole.Confirm("Is this correct?"))
             return;
-        
+
         Config.Servers = Config.Servers.Append(server).ToArray();
         Config.Save();
     }
@@ -102,17 +100,25 @@ public static class Program
 
     private static void StartServer(Server server)
     {
-        // create a new cmd window
-        // Set the title to the server name and port
-        // start the server (LocalAdmin.exe [port] [args])
-
         var process = new Process();
         process.StartInfo.FileName = "cmd.exe";
-        process.StartInfo.Arguments =
-            $"/k title {server.Name} - Port: {server.Port} & LocalAdmin.exe {server.Port} {string.Join(" ", server.LaunchArgs)}";
-        process.StartInfo.UseShellExecute = true;
-        process.Start();
+
+        var args = new List<string>();
+        args.Add("/k");
+        args.Add($"title {server.Name} - Port: {server.Port}");
+        args.Add("&");
+        args.Add($"LocalAdmin.exe {server.Port}");
+        args.Add(server.GetLaunchArgsString());
+        var appDataPth = server.GetAppDataPath();
+        if (!string.IsNullOrWhiteSpace(appDataPth))
+        {
+            args.Add($"-appdatapath");
+            args.Add(appDataPth);
+        }
+
+        process.StartInfo.Arguments = string.Join(" ", args);
+
+        process.StartInfo.UseShellExecute = false;
+        process.StartInfo.CreateNoWindow = true;
     }
 }
-
-

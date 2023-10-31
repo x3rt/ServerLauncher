@@ -4,13 +4,15 @@ namespace ServerLauncher;
 
 public class Config
 {
-    public Server[] Servers { get; set; } = Array.Empty<Server>();
-
-    public string[] LaunchArgs { get; set; } = Array.Empty<string>();
-
     [JsonIgnore]
     private static string Path { get; } =
         System.IO.Path.Combine(Directory.GetCurrentDirectory(), "ServerLauncher", "config.json");
+    public Server[] Servers { get; set; } = Array.Empty<Server>();
+
+    public string[] LaunchArgs { get; set; } = Array.Empty<string>();
+    
+    public string AppDataPath { get; set; } = string.Empty;
+
 
     public static Config Load()
     {
@@ -38,4 +40,17 @@ public class Server
     public string Name { get; set; } = "Default Server";
     public ushort Port { get; set; } = 7777;
     public string[] LaunchArgs { get; set; } = Array.Empty<string>();
+    
+    private string AppDataPath { get; set; } = string.Empty;
+    
+    public string GetLaunchArgsString()
+    {
+        return string.Join(" ", Program.Config.LaunchArgs) + " " + string.Join(" ", LaunchArgs);
+    }
+    
+    public string? GetAppDataPath()
+    {
+        return string.IsNullOrWhiteSpace(AppDataPath) ? null : Path.GetFullPath(AppDataPath);
+    }
+    
 }
