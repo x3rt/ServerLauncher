@@ -208,7 +208,7 @@ public static class Program
                 AnsiConsole.Confirm("Would you like to include this server in the launch all command?"),
         };
         var launchArgs = new Dictionary<string, string>();
-        while (AnsiConsole.Confirm("Would you like to add a launch argument?"))
+        while (AnsiConsole.Confirm("Would you like to add a launch argument?", false))
         {
             // Get the launch arg key
             var key = AnsiConsole.Prompt(
@@ -221,7 +221,7 @@ public static class Program
 
         server.Options.LaunchArgs = launchArgs;
 
-        if (AnsiConsole.Confirm("Does this server have a custom app data path?"))
+        if (AnsiConsole.Confirm("Does this server have a custom app data path?", false))
         {
             server.Options.AppDataPath = AnsiConsole.Prompt(
                 new TextPrompt<string?>("What is the app data path?").AllowEmpty());
@@ -338,7 +338,8 @@ public static class Program
 
         if (Config.Servers.Length == 0)
         {
-            AnsiConsole.WriteLine("There are no servers to start.");
+            AnsiConsole.MarkupLine("[bold][red]There are no servers to start.[/][/]");
+            WaitFor(5);
             return;
         }
 
@@ -366,13 +367,28 @@ public static class Program
         _exit = true;
     }
 
+    private static void WaitFor(int seconds)
+    {
+        AnsiConsole.Status().Start("Press any key to continue in 5 seconds...", ctx =>
+        {
+            for (var i = 0; i < seconds * 10; i++)
+            {
+                ctx.Status($"Press any key to continue in {5 - i / 10} seconds...");
+                if (Console.KeyAvailable)
+                    return;
+                Thread.Sleep(100);
+            }
+        });
+    }
+
     private static void StartAllServers()
     {
         AnsiConsole.Clear();
         var serverToStart = Config.Servers.Where(x => x.IncludeInLaunchAll).ToArray();
         if (serverToStart.Length == 0)
         {
-            AnsiConsole.WriteLine("No servers are set to be included in the launch all command.");
+            AnsiConsole.MarkupLine("[bold][red]No servers are set to be included in the launch all command.[/][/]");
+            WaitFor(5);
             return;
         }
 
