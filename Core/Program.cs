@@ -281,11 +281,11 @@ public static class Program
 
     private static void EditServer(Config.Server server)
     {
-        AnsiConsole.Clear();
         var leave = false;
 
         while (!leave)
         {
+            AnsiConsole.Clear();
             DisplayServerInfo(server);
 
             var action = AnsiConsole.Prompt(
