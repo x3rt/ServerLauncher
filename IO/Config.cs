@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json;
 
 namespace ServerLauncher.IO;
 
@@ -22,8 +21,7 @@ public class Config
             return config;
         }
 
-        return JsonSerializer.Deserialize(File.ReadAllText(Path), SourceGenerationContext.Default.Config) ??
-               throw new ApplicationException("Failed to load config");
+        return JsonConvert.DeserializeObject<Config>(File.ReadAllText(Path))!;
     }
 
     public void Save()
@@ -31,7 +29,7 @@ public class Config
         if (!Directory.Exists(System.IO.Path.GetDirectoryName(Path)))
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
 
-        File.WriteAllText(Path, JsonSerializer.Serialize(this, SourceGenerationContext.Default.Config));
+        File.WriteAllText(Path, JsonConvert.SerializeObject(this, Formatting.Indented));
     }
 
     public class Server
@@ -55,12 +53,4 @@ public class Config
             set => _appDataPath = string.IsNullOrWhiteSpace(value) ? null : value;
         }
     }
-}
-
-[JsonSourceGenerationOptions(WriteIndented = true)]
-[JsonSerializable(typeof(Config))]
-[JsonSerializable(typeof(Config.Server))]
-[JsonSerializable(typeof(Config.SharedOptions))]
-internal partial class SourceGenerationContext : JsonSerializerContext
-{
 }
