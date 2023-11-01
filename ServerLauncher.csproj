@@ -3,26 +3,22 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework Condition="$(RuntimeIdentifier.StartsWith('win', StringComparison.OrdinalIgnoreCase))">net7.0-windows</TargetFramework>
+        <TargetFramework Condition="!$(RuntimeIdentifier.StartsWith('win', StringComparison.OrdinalIgnoreCase))">net7.0</TargetFramework>
+        <!--Stolen from https://github.com/northwood-studios/LocalAdmin-V2/blob/master/LocalAdmin%20V2.csproj-->
 
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <ApplicationIcon>Assets\ServerLauncher.ico</ApplicationIcon>
-        <!--Stolen from https://github.com/northwood-studios/LocalAdmin-V2/blob/master/LocalAdmin%20V2.csproj-->
-
-        <SuppressAotAnalysisWarnings>true</SuppressAotAnalysisWarnings>
-        <RootAllApplicationAssemblies>false</RootAllApplicationAssemblies>
-        <IlcTrimMetadata>true</IlcTrimMetadata>
-        <IlcDisableReflection>false</IlcDisableReflection>
-        <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
-        <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
-        <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
         <Optimize>true</Optimize>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <PropertyGroup>
-        <PublishAot>true</PublishAot>
+        <!-- Disable automatic generation of version attribute -->
+        <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+        <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+        <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     </PropertyGroup>
 
     <!-- Linux only exit handling -->
@@ -36,14 +32,15 @@
         <PlatformTarget>x64</PlatformTarget>
         <DebugType>none</DebugType>
     </PropertyGroup>
+    <!--Stolen from https://github.com/northwood-studios/LocalAdmin-V2/blob/master/LocalAdmin%20V2.csproj-->
+
     <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('linux', StringComparison.OrdinalIgnoreCase))">
         <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0"/>
     </ItemGroup>
 
     <PropertyGroup>
-        <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-        <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-        <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+        <PublishSingleFile>true</PublishSingleFile>
+        <PublishTrimmed>true</PublishTrimmed>
     </PropertyGroup>
 
     <ItemGroup>
