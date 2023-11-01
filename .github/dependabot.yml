@@ -1,0 +1,15 @@
+# Credit:
+# Northwood Studios
+# https://github.com/northwood-studios/LocalAdmin-V2/blob/master/.github/dependabot.yml
+version: 2
+updates:
+- package-ecosystem: nuget
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 99
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 99
