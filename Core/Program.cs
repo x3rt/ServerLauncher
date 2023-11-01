@@ -77,13 +77,15 @@ public static class Program
         // Display The Current Settings in a prompt and allow the user to select which one to edit
         AnsiConsole.Clear();
 
-        var choices = new Dictionary<string, Action>();
-        choices.Add(
-            $"[bold]App Data Path:[/] [green]{(string.IsNullOrWhiteSpace(ConfigHelper.GetAppDataPath()) ? "Default" : ConfigHelper.GetAppDataPath())}[/]",
-            () => EditAppDataPath());
-        choices.Add($"[bold]Launch Args:[/] [green]{ConfigHelper.GetLaunchArgs().Count}[/]", () => EditLaunchArgs());
-
-        choices.Add("[bold]Back[/]", () => { });
+        var choices = new Dictionary<string, Action>
+        {
+            {
+                $"[bold]App Data Path:[/] [green]{(string.IsNullOrWhiteSpace(ConfigHelper.GetAppDataPath()) ? "Default" : ConfigHelper.GetAppDataPath())}[/]",
+                () => EditAppDataPath()
+            },
+            { $"[bold]Launch Args:[/] [green]{ConfigHelper.GetLaunchArgs().Count}[/]", () => EditLaunchArgs() },
+            { "[bold]Back[/]", () => { } }
+        };
 
         var action = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
@@ -156,31 +158,37 @@ public static class Program
             AnsiConsole.MarkupLine($"[bold]Current Value:[/] [green]{sharedOptions.LaunchArgs[key]}[/]");
             AnsiConsole.WriteLine();
 
-            var choices = new Dictionary<string, Action>();
-            choices.Add("Edit Value", () =>
+            var choices = new Dictionary<string, Action>
             {
-                sharedOptions.LaunchArgs[key] = AnsiConsole.Prompt(
-                    new TextPrompt<string>("What is the new value?")
-                        .AllowEmpty());
-                Config.Save();
-            });
-            choices.Add("Edit Key", () =>
-            {
-                var newKey = AnsiConsole.Prompt(
-                    new TextPrompt<string>("What is the new key?"));
-                var value = sharedOptions.LaunchArgs[key];
-                sharedOptions.LaunchArgs.Remove(key);
-                sharedOptions.LaunchArgs.Add(newKey, value);
-                key = newKey;
-                Config.Save();
-            });
-            choices.Add("Delete", () =>
-            {
-                leave = true;
-                sharedOptions.LaunchArgs.Remove(key);
-                Config.Save();
-            });
-            choices.Add("Back", () => leave = true);
+                {
+                    "Edit Value", () =>
+                    {
+                        sharedOptions.LaunchArgs[key] = AnsiConsole.Prompt(
+                            new TextPrompt<string>("What is the new value?")
+                                .AllowEmpty());
+                        Config.Save();
+                    }
+                },
+                {
+                    "Edit Key", () =>
+                    {
+                        var newKey = AnsiConsole.Prompt(
+                            new TextPrompt<string>("What is the new key?"));
+                        var value = sharedOptions.LaunchArgs[key];
+                        sharedOptions.LaunchArgs.Remove(key);
+                        sharedOptions.LaunchArgs.Add(newKey, value);
+                        key = newKey;
+                        Config.Save();
+                    }
+                },
+                { "Delete", () =>
+                {
+                    leave = true;
+                    sharedOptions.LaunchArgs.Remove(key);
+                    Config.Save();
+                } },
+                { "Back", () => leave = true }
+            };
 
             var action = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
@@ -285,33 +293,39 @@ public static class Program
             AnsiConsole.Clear();
             DisplayServerInfo(server);
 
-            var choices = new Dictionary<string, Action>();
-            choices.Add("Edit Name", () =>
+            var choices = new Dictionary<string, Action>
             {
-                server.Name = AnsiConsole.Prompt(
-                    new TextPrompt<string>("What is the new name?"));
-                Config.Save();
-            });
-            choices.Add("Edit Port", () =>
-            {
-                server.Port = AnsiConsole.Prompt(
-                    new TextPrompt<ushort>("What is the new port?").DefaultValue<ushort>(7777));
-                Config.Save();
-            });
-            choices.Add("Toggle Include In Launch All", () =>
-            {
-                server.IncludeInLaunchAll = !server.IncludeInLaunchAll;
-                Config.Save();
-            });
-            choices.Add("Edit App Data Path", () => EditAppDataPath(server));
-            choices.Add("Edit Launch Args", () => EditLaunchArgs(server));
-            choices.Add("Delete", () =>
-            {
-                leave = true;
-                Config.Servers = Config.Servers.Where(x => x != server).ToArray();
-                Config.Save();
-            });
-            choices.Add("Back", () => leave = true);
+                {
+                    "Edit Name", () =>
+                    {
+                        server.Name = AnsiConsole.Prompt(
+                            new TextPrompt<string>("What is the new name?"));
+                        Config.Save();
+                    }
+                },
+                {
+                    "Edit Port", () =>
+                    {
+                        server.Port = AnsiConsole.Prompt(
+                            new TextPrompt<ushort>("What is the new port?").DefaultValue<ushort>(7777));
+                        Config.Save();
+                    }
+                },
+                { "Toggle Include In Launch All", () =>
+                {
+                    server.IncludeInLaunchAll = !server.IncludeInLaunchAll;
+                    Config.Save();
+                } },
+                { "Edit App Data Path", () => EditAppDataPath(server) },
+                { "Edit Launch Args", () => EditLaunchArgs(server) },
+                { "Delete", () =>
+                {
+                    leave = true;
+                    Config.Servers = Config.Servers.Where(x => x != server).ToArray();
+                    Config.Save();
+                } },
+                { "Back", () => leave = true }
+            };
 
             var action = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
