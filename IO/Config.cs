@@ -45,7 +45,7 @@ public class Config
     public class SharedOptions
     {
         [JsonIgnore] private string? _appDataPath;
-        public Dictionary<string, string> LaunchArgs { get; set; } = new();
+        public Dictionary<string, string?> LaunchArgs { get; set; } = new();
 
         public string? AppDataPath
         {

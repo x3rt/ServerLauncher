@@ -137,7 +137,7 @@ public static class Program
             new TextPrompt<string>("What is the launch argument key?"));
 
         var value = AnsiConsole.Prompt(
-            new TextPrompt<string>("What is the launch argument value?"));
+            new TextPrompt<string?>("What is the launch argument value?").AllowEmpty());
 
         sharedOptions.LaunchArgs.Add(key, value);
 
@@ -167,7 +167,8 @@ public static class Program
             {
                 case "Edit Value":
                     sharedOptions.LaunchArgs[key] = AnsiConsole.Prompt(
-                        new TextPrompt<string>("What is the new value?"));
+                        new TextPrompt<string>("What is the new value?")
+                            .AllowEmpty());
                     Config.Save();
                     break;
                 case "Edit Key":

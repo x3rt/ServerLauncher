@@ -27,10 +27,10 @@ public static class ConfigHelper
             : string.Join(" ", launchArgs.Select(x => $"{x.Key} {x.Value}"));
     }
 
-    public static Dictionary<string, string> GetLaunchArgs(Config.Server? server = null, bool includeGlobal = true)
+    public static Dictionary<string, string?> GetLaunchArgs(Config.Server? server = null, bool includeGlobal = true)
     {
         // combine the global launch args with the server specific ones
-        var launchArgs = includeGlobal ? Program.Config.GlobalOptions.LaunchArgs : new Dictionary<string, string>();
+        var launchArgs = includeGlobal ? Program.Config.GlobalOptions.LaunchArgs : new Dictionary<string, string?>();
         if (server is not null)
             foreach (var (key, value) in server.Options.LaunchArgs)
             {
