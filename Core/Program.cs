@@ -132,20 +132,14 @@ public static class Program
     private static void AddLaunchArg(Config.Server? server = null)
     {
         AnsiConsole.Clear();
+        var sharedOptions = server is null ? Config.GlobalOptions : server.Options;
         var key = AnsiConsole.Prompt(
             new TextPrompt<string>("What is the launch argument key?"));
 
         var value = AnsiConsole.Prompt(
             new TextPrompt<string>("What is the launch argument value?"));
 
-        if (server is null)
-        {
-            Config.GlobalOptions.LaunchArgs.Add(key, value);
-        }
-        else
-        {
-            server.Options.LaunchArgs.Add(key, value);
-        }
+        sharedOptions.LaunchArgs.Add(key, value);
 
         Config.Save();
     }
@@ -179,8 +173,10 @@ public static class Program
                 case "Edit Key":
                     var newKey = AnsiConsole.Prompt(
                         new TextPrompt<string>("What is the new key?"));
-                    sharedOptions.LaunchArgs.Add(newKey, sharedOptions.LaunchArgs[key]);
+                    var value = sharedOptions.LaunchArgs[key];
                     sharedOptions.LaunchArgs.Remove(key);
+                    sharedOptions.LaunchArgs.Add(newKey, value);
+                    key = newKey;
                     Config.Save();
                     break;
                 case "Delete":
