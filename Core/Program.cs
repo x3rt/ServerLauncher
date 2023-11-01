@@ -146,49 +146,49 @@ public static class Program
 
     private static void EditLaunchArg(string key, Config.Server? server = null)
     {
-        AnsiConsole.Clear();
         var leave = false;
         // Display the current key and value
         var sharedOptions = server is null ? Config.GlobalOptions : server.Options;
         while (!leave)
         {
+            AnsiConsole.Clear();
             AnsiConsole.MarkupLine($"[bold]Current Key:[/] [green]{key}[/]");
             AnsiConsole.MarkupLine($"[bold]Current Value:[/] [green]{sharedOptions.LaunchArgs[key]}[/]");
             AnsiConsole.WriteLine();
 
-            // Ask if the user wants to delete the launch arg or edit the value
+            var choices = new Dictionary<string, Action>();
+            choices.Add("Edit Value", () =>
+            {
+                sharedOptions.LaunchArgs[key] = AnsiConsole.Prompt(
+                    new TextPrompt<string>("What is the new value?")
+                        .AllowEmpty());
+                Config.Save();
+            });
+            choices.Add("Edit Key", () =>
+            {
+                var newKey = AnsiConsole.Prompt(
+                    new TextPrompt<string>("What is the new key?"));
+                var value = sharedOptions.LaunchArgs[key];
+                sharedOptions.LaunchArgs.Remove(key);
+                sharedOptions.LaunchArgs.Add(newKey, value);
+                key = newKey;
+                Config.Save();
+            });
+            choices.Add("Delete", () =>
+            {
+                leave = true;
+                sharedOptions.LaunchArgs.Remove(key);
+                Config.Save();
+            });
+            choices.Add("Back", () => leave = true);
+
             var action = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title($"What would you like to do with this launch argument?")
                     .PageSize(10)
-                    .AddChoices(new[] { "Edit Value", "Edit Key", "Delete", "Back" }));
+                    .AddChoices(choices.Keys.ToArray()));
 
-            switch (action)
-            {
-                case "Edit Value":
-                    sharedOptions.LaunchArgs[key] = AnsiConsole.Prompt(
-                        new TextPrompt<string>("What is the new value?")
-                            .AllowEmpty());
-                    Config.Save();
-                    break;
-                case "Edit Key":
-                    var newKey = AnsiConsole.Prompt(
-                        new TextPrompt<string>("What is the new key?"));
-                    var value = sharedOptions.LaunchArgs[key];
-                    sharedOptions.LaunchArgs.Remove(key);
-                    sharedOptions.LaunchArgs.Add(newKey, value);
-                    key = newKey;
-                    Config.Save();
-                    break;
-                case "Delete":
-                    leave = true;
-                    sharedOptions.LaunchArgs.Remove(key);
-                    Config.Save();
-                    break;
-                default:
-                    leave = true;
-                    break;
-            }
+            choices[action].Invoke();
         }
     }
 
@@ -204,7 +204,7 @@ public static class Program
             IncludeInLaunchAll =
                 AnsiConsole.Confirm("Would you like to include this server in the launch all command?"),
         };
-        var launchArgs = new Dictionary<string, string>();
+        var launchArgs = new Dictionary<string, string?>();
         while (AnsiConsole.Confirm("Would you like to add a launch argument?", false))
         {
             // Get the launch arg key
@@ -285,47 +285,41 @@ public static class Program
             AnsiConsole.Clear();
             DisplayServerInfo(server);
 
+            var choices = new Dictionary<string, Action>();
+            choices.Add("Edit Name", () =>
+            {
+                server.Name = AnsiConsole.Prompt(
+                    new TextPrompt<string>("What is the new name?"));
+                Config.Save();
+            });
+            choices.Add("Edit Port", () =>
+            {
+                server.Port = AnsiConsole.Prompt(
+                    new TextPrompt<ushort>("What is the new port?").DefaultValue<ushort>(7777));
+                Config.Save();
+            });
+            choices.Add("Toggle Include In Launch All", () =>
+            {
+                server.IncludeInLaunchAll = !server.IncludeInLaunchAll;
+                Config.Save();
+            });
+            choices.Add("Edit App Data Path", () => EditAppDataPath(server));
+            choices.Add("Edit Launch Args", () => EditLaunchArgs(server));
+            choices.Add("Delete", () =>
+            {
+                leave = true;
+                Config.Servers = Config.Servers.Where(x => x != server).ToArray();
+                Config.Save();
+            });
+            choices.Add("Back", () => leave = true);
+
             var action = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title("What would you like to do?")
                     .PageSize(10)
-                    .AddChoices(new[]
-                    {
-                        "Edit Name", "Edit Port", "Toggle Include In Launch All", "Edit App Data Path",
-                        "Edit Launch Args", "Delete", "Back"
-                    }));
+                    .AddChoices(choices.Keys.ToArray()));
 
-            switch (action)
-            {
-                case "Edit Name":
-                    server.Name = AnsiConsole.Prompt(
-                        new TextPrompt<string>("What is the new name?"));
-                    Config.Save();
-                    break;
-                case "Edit Port":
-                    server.Port = AnsiConsole.Prompt(
-                        new TextPrompt<ushort>("What is the new port?").DefaultValue<ushort>(7777));
-                    Config.Save();
-                    break;
-                case "Toggle Include In Launch All":
-                    server.IncludeInLaunchAll = !server.IncludeInLaunchAll;
-                    Config.Save();
-                    break;
-                case "Edit App Data Path":
-                    EditAppDataPath(server);
-                    break;
-                case "Edit Launch Args":
-                    EditLaunchArgs(server);
-                    break;
-                case "Delete":
-                    leave = true;
-                    Config.Servers = Config.Servers.Where(x => x != server).ToArray();
-                    Config.Save();
-                    break;
-                default:
-                    leave = true;
-                    break;
-            }
+            choices[action].Invoke();
         }
     }
 
@@ -421,9 +415,9 @@ public static class Program
                 CreateNoWindow = false
             }
         };
-        
+
         AnsiConsole.MarkupLine($"[bold]Starting {server.Name} on port {server.Port}[/]");
-        
+
         Thread.Sleep(500);
 
         process.Start();
