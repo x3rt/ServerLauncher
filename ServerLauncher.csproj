@@ -26,6 +26,21 @@
         <PublishAot>true</PublishAot>
     </PropertyGroup>
 
+    <!-- Linux only exit handling -->
+    <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('linux', StringComparison.OrdinalIgnoreCase))">
+        <DefineConstants>LINUX_SIGNALS</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <PlatformTarget>x64</PlatformTarget>
+        <DebugType>none</DebugType>
+    </PropertyGroup>
+    <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('linux', StringComparison.OrdinalIgnoreCase))">
+        <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+    </ItemGroup>
+
     <PropertyGroup>
         <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
         <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
