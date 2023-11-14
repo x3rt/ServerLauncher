@@ -5,8 +5,7 @@ namespace ServerLauncher.IO;
 public class Config
 {
     [JsonIgnore]
-    private static string Path { get; } =
-        System.IO.Path.Combine(Directory.GetCurrentDirectory(), "ServerLauncher", "config.json");
+    private static string Path => PathManager.ConfigPath;
 
     public Server[] Servers { get; set; } = Array.Empty<Server>();
 
