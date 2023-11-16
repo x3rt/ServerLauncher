@@ -51,19 +51,19 @@ internal static class PathManager
                 if (OperatingSystem.IsWindows())
                     return path + Path.DirectorySeparatorChar + "AppData" + Path.DirectorySeparatorChar + "Roaming" + Path.DirectorySeparatorChar;
 
-                AnsiConsole.MarkupLine("Failed to get special folder path - unsupported platform!", ConsoleColor.Red);
+                AnsiConsole.MarkupLine("Failed to get special folder path - unsupported platform!");
                 throw new PlatformNotSupportedException();
             }
 
             CorrectPathFound = false;
-            AnsiConsole.MarkupLine($"Failed to get special folder path - it's always null or empty!", ConsoleColor.Red);
+            AnsiConsole.MarkupLine($"Failed to get special folder path - it's always null or empty!");
 
             return string.Empty;
         }
         catch (Exception e)
         {
             CorrectPathFound = false;
-            AnsiConsole.MarkupLine($"Failed to get special folder path! Exception: {e.Message}", ConsoleColor.Red);
+            AnsiConsole.MarkupLine($"Failed to get special folder path! Exception: {e.Message}");
 
             throw;
         }
@@ -86,13 +86,13 @@ internal static class PathManager
                     continue;
 
                 _configDirOverride = true;
-                AnsiConsole.MarkupLine("Applied policy: gamedir_for_configs: true", ConsoleColor.Gray);
+                AnsiConsole.MarkupLine("Applied policy: gamedir_for_configs: true");
                 break;
             }
         }
         catch (Exception e)
         {
-            AnsiConsole.MarkupLine($"Failed to process hoster_policy.txt file: {e.Message}", ConsoleColor.Red);
+            AnsiConsole.MarkupLine($"Failed to process hoster_policy.txt file: {e.Message}");
         }
     }
 }
