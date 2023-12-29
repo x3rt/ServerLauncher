@@ -2,14 +2,37 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
+        <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
         <TargetFramework>net7.0</TargetFramework>
+
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <ApplicationIcon>Assets\ServerLauncher.ico</ApplicationIcon>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <AssemblyVersion>1.0.0</AssemblyVersion>
+        <FileVersion>1.0.0</FileVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <PlatformTarget>x64</PlatformTarget>
+        <DebugType>none</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <PublishSingleFile>true</PublishSingleFile>
+        <PublishTrimed>true</PublishTrimed>
+        <SelfContained>false</SelfContained>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-      <PackageReference Include="Spectre.Console" Version="0.47.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="Spectre.Console" Version="0.48.0" />
     </ItemGroup>
 
 </Project>
