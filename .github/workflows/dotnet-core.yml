@@ -1,9 +1,13 @@
-# Credit:
-# Northwood Studios
-# https://github.com/northwood-studios/LocalAdmin-V2/blob/master/.github/workflows/dotnet-core.yml
 name: .NET CI
 
-on: [push, pull_request]
+env:
+  PROJECT_NAME: ServerLauncher
+
+on:
+  push:
+    tags:
+      - '*'
+  pull_request:
 
 jobs:
   build:
@@ -21,33 +25,52 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - if: matrix.os == 'ubuntu-20.04'
-      name: Install Linux packages
-      run: |
-       sudo apt-get update
-       sudo apt-get install -y build-essential libkrb5-dev make gcc libc-dev cmake llvm
+      - if: matrix.os == 'ubuntu-20.04'
+        name: Install Linux packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libkrb5-dev make gcc libc-dev cmake llvm
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: ${{ matrix.framework }}
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.framework }}
 
-    - name: Install dependencies for ${{ matrix.target }}
-      run: dotnet restore -r ${{ matrix.target }}
+      - name: Install dependencies for ${{ matrix.target }}
+        run: dotnet restore -r ${{ matrix.target }}
 
-    - name: Build ${{ matrix.target }}
-      run: dotnet publish "ServerLauncher.csproj" -r ${{ matrix.target }} -c release -o "${{ github.workspace }}/builds/${{ matrix.framework }}/${{ matrix.target }}"
+      - name: Build ${{ matrix.target }}
+        run: dotnet publish "${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.csproj" -r ${{ matrix.target }} -c release -o "${{ github.workspace }}/builds/${{ matrix.framework }}/${{ matrix.target }}"
 
-    - name: Upload ${{ matrix.target }} Build
-      uses: actions/upload-artifact@v3
-      with:
-        name: ServerLauncher-${{ matrix.target }}-${{ matrix.framework }}
-        path: ${{ github.workspace }}/builds/${{ matrix.framework }}/${{ matrix.target }}
+      - name: Upload ${{ matrix.target }} Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.target }}-${{ matrix.framework }}
+          path: ${{ github.workspace }}/builds/${{ matrix.framework }}/${{ matrix.target }}/*${{ env.PROJECT_NAME }}*
 
-    - name: Upload ${{ matrix.target }} Build to bundle
-      uses: actions/upload-artifact@v3
-      with:
-        name: ServerLauncher-all-${{ matrix.framework }}
-        path: ${{ github.workspace }}/builds/${{ matrix.framework }}
+  release:
+    name: Release
+    needs: build
+    runs-on: ubuntu-20.04
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Download all builds
+        uses: actions/download-artifact@v3
+        with:
+          pattern: ${{ env.PROJECT_NAME }}-*-*
+          path: builds
+          merge-multiple: true
+      - name: Release All
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'builds/*/*'
+          bodyFile: ".github/release-body.md"
+          commit: ${{ github.sha }}
+          draft: false
+          prerelease: false
